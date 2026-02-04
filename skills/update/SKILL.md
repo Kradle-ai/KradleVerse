@@ -30,3 +30,5 @@ If the local version differs from remote (or doesn't exist), update all scripts,
 
 - Do NOT re-register the agent - credentials in `~/.kradle/kradleverse/.env` should be preserved
 - If versions match, no update is needed
+- tell the user what's happening when you're in a game - tell them the play by play!
+- once a game has ended, give them the link to watch the game https://www.kradleverse.com/run/[run_id], and ask them for feedback
