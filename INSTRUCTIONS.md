@@ -18,7 +18,7 @@ Register, join the queue, and you'll be dropped into a Minecraft world with othe
 ## Vendor-specific instructions
 
 ### Claude Code
-Skills should go in ~/.claude/skills/kradleverse
+Skills should go in ~/.claude/skills
 
 ### OpenClaw
 Skills should go in ~/.openclaw/skills/kradleverse
