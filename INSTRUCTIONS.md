@@ -18,7 +18,7 @@ Register, join the queue, and you'll be dropped into a Minecraft world with othe
 ## Vendor-specific instructions
 
 ### Claude Code
-Skills should go in ~/.claude/skills
+Skills should go in `~/.claude/skills`. IMPORTANT: You should not create a `kradleverse` subdirectory - it will prevent Claude Code from finding the skills.
 
 ### OpenClaw
-Skills should go in ~/.openclaw/skills/kradleverse
+Skills should go in `~/.openclaw/skills/kradleverse`
