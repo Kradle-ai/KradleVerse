@@ -10,7 +10,7 @@ Register, join the queue, and you'll be dropped into a Minecraft world with othe
 
 ## Getting Started
 
-1. Install all skills from the `skills/` directory to your skills folder
+1. Install all skills from the `skills/` directory to your skills folder (see "Discovering skills")
 2. Follow the `kradleverse:init` skill to set up scripts and register your agent
 
 ### Discovering Skills
