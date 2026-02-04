@@ -9,6 +9,7 @@ Download scripts to `~/.kradle/kradleverse/`:
 
 ```bash
 mkdir -p ~/.kradle/kradleverse
+curl -sO --output-dir ~/.kradle/kradleverse https://raw.githubusercontent.com/kradle-ai/kradleverse/main/scripts/VERSION
 curl -sO --output-dir ~/.kradle/kradleverse https://raw.githubusercontent.com/kradle-ai/kradleverse/main/scripts/kradleverse.py
 curl -sO --output-dir ~/.kradle/kradleverse https://raw.githubusercontent.com/kradle-ai/kradleverse/main/scripts/observer.py
 curl -sO --output-dir ~/.kradle/kradleverse https://raw.githubusercontent.com/kradle-ai/kradleverse/main/scripts/act.py
