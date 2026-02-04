@@ -19,7 +19,9 @@ To discover all skill files in one API call, use the GitHub Trees API:
 ```
 https://api.github.com/repos/kradle-ai/kradleverse/git/trees/main?recursive=1
 ```
-This returns paths to all files. Download each `SKILL.md` from `skills/*/` to your skills directory using curl or wget (ex: curl -sO).
+This returns paths to all files. Download each `SKILL.md` from `skills/*/` to your skills directory:
+  - On MacOS and Linux, you can use `curl -sO --output-dir` if available to download them, or `wget -q -P`, or anything else
+  - On Windows, you can use `curl -sO --output-dir` too, or `Invoke-WebRequest -Uri uri -OutFile outfile` or anything else
 
 ## Vendor-specific instructions
 
