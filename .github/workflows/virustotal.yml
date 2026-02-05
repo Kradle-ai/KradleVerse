@@ -18,11 +18,46 @@ jobs:
         run: git archive --format=tar.gz -o repo-scan.tar.gz HEAD
 
       - name: VirusTotal Scan
+        id: vt
         uses: crazy-max/ghaction-virustotal@v4
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
             repo-scan.tar.gz
+
+      - name: Wait for analysis and check results
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          VT_ANALYSIS: ${{ steps.vt.outputs.analysis }}
+        run: |
+          # Extract analysis ID from URL (format: filename=https://.../<id>/detection)
+          ANALYSIS_URL=$(echo "$VT_ANALYSIS" | cut -d'=' -f2-)
+          ANALYSIS_ID=$(echo "$ANALYSIS_URL" | grep -oP '[^/]+(?=/detection)')
+
+          echo "Polling analysis $ANALYSIS_ID ..."
+          for i in $(seq 1 30); do
+            RESPONSE=$(curl -s --header "x-apikey: $VT_API_KEY" \
+              "https://www.virustotal.com/api/v3/analyses/$ANALYSIS_ID")
+            STATUS=$(echo "$RESPONSE" | jq -r '.data.attributes.status')
+
+            if [ "$STATUS" = "completed" ]; then
+              MALICIOUS=$(echo "$RESPONSE" | jq '.data.attributes.stats.malicious')
+              SUSPICIOUS=$(echo "$RESPONSE" | jq '.data.attributes.stats.suspicious')
+              echo "Analysis complete: malicious=$MALICIOUS suspicious=$SUSPICIOUS"
+
+              if [ "$MALICIOUS" -gt 0 ] || [ "$SUSPICIOUS" -gt 0 ]; then
+                echo "::error::VirusTotal detected $MALICIOUS malicious and $SUSPICIOUS suspicious results"
+                echo "$RESPONSE" | jq '.data.attributes.results | to_entries[] | select(.value.category == "malicious" or .value.category == "suspicious") | {engine: .key, category: .value.category, result: .value.result}'
+                exit 1
+              fi
+              exit 0
+            fi
+
+            echo "Status: $STATUS — waiting 15s ($i/30)"
+            sleep 60
+          done
+          echo "::error::Timed out waiting for VirusTotal analysis"
+          exit 1
 
   scan-kradle-pypi-package:
     name: Scan kradle PyPI package
@@ -33,8 +68,43 @@ jobs:
         run: pip download kradle --no-deps -d kradle-pkg/
 
       - name: VirusTotal Scan
+        id: vt
         uses: crazy-max/ghaction-virustotal@v4
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
             kradle-pkg/*
+
+      - name: Wait for analysis and check results
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          VT_ANALYSIS: ${{ steps.vt.outputs.analysis }}
+        run: |
+          # Extract analysis ID from URL (format: filename=https://.../<id>/detection)
+          ANALYSIS_URL=$(echo "$VT_ANALYSIS" | cut -d'=' -f2-)
+          ANALYSIS_ID=$(echo "$ANALYSIS_URL" | grep -oP '[^/]+(?=/detection)')
+
+          echo "Polling analysis $ANALYSIS_ID ..."
+          for i in $(seq 1 30); do
+            RESPONSE=$(curl -s --header "x-apikey: $VT_API_KEY" \
+              "https://www.virustotal.com/api/v3/analyses/$ANALYSIS_ID")
+            STATUS=$(echo "$RESPONSE" | jq -r '.data.attributes.status')
+
+            if [ "$STATUS" = "completed" ]; then
+              MALICIOUS=$(echo "$RESPONSE" | jq '.data.attributes.stats.malicious')
+              SUSPICIOUS=$(echo "$RESPONSE" | jq '.data.attributes.stats.suspicious')
+              echo "Analysis complete: malicious=$MALICIOUS suspicious=$SUSPICIOUS"
+
+              if [ "$MALICIOUS" -gt 0 ] || [ "$SUSPICIOUS" -gt 0 ]; then
+                echo "::error::VirusTotal detected $MALICIOUS malicious and $SUSPICIOUS suspicious results"
+                echo "$RESPONSE" | jq '.data.attributes.results | to_entries[] | select(.value.category == "malicious" or .value.category == "suspicious") | {engine: .key, category: .value.category, result: .value.result}'
+                exit 1
+              fi
+              exit 0
+            fi
+
+            echo "Status: $STATUS — waiting 15s ($i/30)"
+            sleep 60
+          done
+          echo "::error::Timed out waiting for VirusTotal analysis"
+          exit 1
