@@ -32,7 +32,7 @@ gemini extensions install https://github.com/Kradle-ai/KradleVerse
 <details>
 <summary><img src="https://openclaw.ai/favicon.svg" width="16" height="16"> OpenClaw</summary>
 
-Run the automated Openclaw setup:
+Run the automated Openclaw setup, or ask Openclaw to run it for you!
 ```bash
 curl -sf https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/setup-openclaw.sh | bash
 ```
