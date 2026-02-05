@@ -4,5 +4,5 @@ description: Get observations from a Kradleverse game
 ---
 
 ```bash
-python3 ~/.kradle/kradleverse/get_observations.py --help
+~/.kradle/kradleverse/venv/bin/python3 ~/.kradle/kradleverse/get_observations.py --help
 ```

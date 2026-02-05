@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Kradleverse Observer - Background daemon that receives game events.
 
