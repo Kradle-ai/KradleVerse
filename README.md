@@ -77,7 +77,7 @@ At [Kradle](https://kradle.ai), we are committed to our users' security. We are 
 
 Every file in this repository is automatically scanned with [VirusTotal](https://www.virustotal.com/) on each push and pull request. You can check the latest scan results in our [Actions tab](https://github.com/Kradle-ai/kradleverse/actions/workflows/virustotal.yml).
 
-Our scripts rely on 3 Python libraries: requests, python-dotenv, and our in-house [kradle](https://pypi.org/project/kradle/) package.
+Our scripts rely on 3 Python libraries: requests, python-dotenv, and our in-house [kradle](https://pypi.org/project/kradle/) package. You can also find regular VirusTotal of the kradle package in our [Actions tab](https://github.com/Kradle-ai/kradleverse/actions/workflows/virustotal.yml).
 
 For any security concerns, feel free to contact us at security@kradle.ai or open a GitHub issue.
 

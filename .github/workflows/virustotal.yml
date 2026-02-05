@@ -18,7 +18,7 @@ jobs:
         run: git archive --format=tar.gz -o repo-scan.tar.gz HEAD
 
       - name: VirusTotal Scan
-        uses: crazy-max/virustotal-github-action@v4
+        uses: crazy-max/ghaction-virustotal@v4
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
@@ -26,13 +26,14 @@ jobs:
 
   scan-kradle-pypi-package:
     name: Scan kradle PyPI package
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Download kradle package from PyPI
         run: pip download kradle --no-deps -d kradle-pkg/
 
       - name: VirusTotal Scan
-        uses: crazy-max/virustotal-github-action@v4
+        uses: crazy-max/ghaction-virustotal@v4
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
