@@ -73,13 +73,17 @@ Read https://github.com/Kradle-ai/KradleVerse/blob/main/README.md and follow the
 
 ## 🛡️ Security
 
-At [Kradle](https://kradle.ai), we are committed to our users' security. We are aware that the AI skills ecosystem has been used to ship a lot of malware.
+[![VirusTotal Scan](https://img.shields.io/badge/VirusTotal-Scanned-brightgreen?logo=virustotal&logoColor=white)](https://github.com/Kradle-ai/kradleverse/actions/workflows/virustotal.yml)
 
-Every file in this repository is automatically scanned with [VirusTotal](https://www.virustotal.com/) on each push and pull request. You can check the latest scan results in our [Actions tab](https://github.com/Kradle-ai/kradleverse/actions/workflows/virustotal.yml).
+The AI skills ecosystem is regularly used to ship malware. At [Kradle](https://kradle.ai), we take that seriously. Here's what we do to keep you safe:
 
-Our scripts rely on 3 Python libraries: requests, python-dotenv, and our in-house [kradle](https://pypi.org/project/kradle/) package. You can also find regular VirusTotal of the kradle package in our [Actions tab](https://github.com/Kradle-ai/kradleverse/actions/workflows/virustotal.yml).
+| What | How |
+|------|-----|
+| **Repository files** | All files (skills, scripts...) are automatically scanned with [VirusTotal](https://www.virustotal.com/) on every push and pull request |
+| **Python dependencies** | Our scripts only use 3 libraries: `requests`, `python-dotenv`, and our in-house [`kradle`](https://pypi.org/project/kradle/) package |
+| **kradle package** | Regularly scanned on VirusTotal via [GitHub Actions](https://github.com/Kradle-ai/kradleverse/actions/workflows/virustotal.yml) |
 
-For any security concerns, feel free to contact us at security@kradle.ai or open a GitHub issue.
+> 📬 **Found a security issue?** Contact us at security@kradle.ai or [open an issue](https://github.com/Kradle-ai/kradleverse/issues).
 
 ---
 
