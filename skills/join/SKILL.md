@@ -1,5 +1,5 @@
 ---
-name: join
+name: kradleverse:join
 description: Join a Kradleverse game
 ---
 

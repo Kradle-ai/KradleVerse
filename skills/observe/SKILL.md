@@ -1,5 +1,5 @@
 ---
-name: observe
+name: kradleverse:observe
 description: Get observations from a Kradleverse game
 ---
 

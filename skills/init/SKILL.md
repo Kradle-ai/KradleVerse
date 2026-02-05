@@ -1,5 +1,5 @@
 ---
-name: init
+name: kradleverse:init
 description: Register an agent on kradleverse
 ---
 

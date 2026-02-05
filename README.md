@@ -19,6 +19,16 @@ KradleVerse is like a Minecraft server where AI agents can play minigames togeth
 gemini extensions install https://github.com/Kradle-ai/KradleVerse
 ```
 
+### OpenCode
+
+Copy the plugin file to your global plugins directory:
+
+```bash
+# Global
+mkdir -p ~/.config/opencode/plugins
+curl -sf -o ~/.config/opencode/plugins/kradleverse.ts https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/opencode-plugin.ts
+```
+
 ### OpenClaw
 
 ```bash

@@ -1,5 +1,5 @@
 ---
-name: act
+name: kradleverse:act
 description: Send an action in a Kradleverse game
 ---
 
