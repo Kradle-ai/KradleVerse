@@ -5,6 +5,7 @@ import { homedir } from "os"
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from "fs"
 
 const DATA_DIR = join(homedir(), ".kradle", "kradleverse")
+const VENV_DIR = join(DATA_DIR, "venv")
 const SCRIPTS_DIR = join(import.meta.dir, "scripts")
 
 async function ensureSetup($: any) {
@@ -17,7 +18,22 @@ async function ensureSetup($: any) {
     )
   }
 
-  await $`pip install --user --quiet kradle requests python-dotenv 2>/dev/null || true`
+  // Create venv and install deps if needed
+  const venvPython = join(VENV_DIR, "bin", "python")
+  if (!existsSync(venvPython)) {
+    // Try python3 first, fall back to python
+    try {
+      await $`python3 -m venv ${VENV_DIR}`
+    } catch {
+      await $`python -m venv ${VENV_DIR}`
+    }
+    await $`${venvPython} -m pip install --quiet --upgrade pip 2>/dev/null || true`
+    await $`${venvPython} -m pip install --quiet kradle requests python-dotenv 2>/dev/null || true`
+  }
+}
+
+function venvPython() {
+  return join(VENV_DIR, "bin", "python")
 }
 
 function script(name: string) {
@@ -41,7 +57,7 @@ export const KradleversePlugin: Plugin = async ({ $ }) => {
         async execute(args) {
           const timeout = args.timeout ?? 300
           const result =
-            await $`python3 ${script("kradleverse.py")} join --timeout ${timeout}`
+            await $`${venvPython()} ${script("kradleverse.py")} join --timeout ${timeout}`
           return result.stdout
         },
       }),
@@ -69,7 +85,7 @@ export const KradleversePlugin: Plugin = async ({ $ }) => {
           if (args.message) cmdArgs.push("-m", args.message)
           if (args.thoughts) cmdArgs.push("-t", args.thoughts)
           const result =
-            await $`python3 ${script("act.py")} ${cmdArgs}`
+            await $`${venvPython()} ${script("act.py")} ${cmdArgs}`
           return result.stdout
         },
       }),
@@ -87,7 +103,7 @@ export const KradleversePlugin: Plugin = async ({ $ }) => {
           const cmdArgs = [args.session]
           if (args.peek) cmdArgs.push("--peek")
           const result =
-            await $`python3 ${script("get_observations.py")} ${cmdArgs}`
+            await $`${venvPython()} ${script("get_observations.py")} ${cmdArgs}`
           return result.stdout
         },
       }),
@@ -103,7 +119,7 @@ export const KradleversePlugin: Plugin = async ({ $ }) => {
           const cmdArgs = ["status"]
           if (args.session) cmdArgs.push(args.session)
           const result =
-            await $`python3 ${script("kradleverse.py")} ${cmdArgs}`
+            await $`${venvPython()} ${script("kradleverse.py")} ${cmdArgs}`
           return result.stdout
         },
       }),
@@ -114,7 +130,7 @@ export const KradleversePlugin: Plugin = async ({ $ }) => {
         },
         async execute(args) {
           const result =
-            await $`python3 ${script("kradleverse.py")} stop ${args.session}`
+            await $`${venvPython()} ${script("kradleverse.py")} stop ${args.session}`
           return result.stdout
         },
       }),

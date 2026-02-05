@@ -32,8 +32,7 @@ curl -sf -o ~/.config/opencode/plugins/kradleverse.ts https://raw.githubusercont
 ### OpenClaw
 
 ```bash
-clawhub install kradleverse-init kradleverse-join kradleverse-act kradleverse-observe kradleverse-cleanup
-pip install --user kradle requests python-dotenv
+bash <(curl -sf https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/setup-openclaw.sh)
 ```
 
 ## Getting Started
