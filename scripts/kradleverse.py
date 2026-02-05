@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Kradleverse - Join a game, observe, and play.
 

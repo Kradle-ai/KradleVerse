@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Kradleverse Act - Send actions to the running game.
 

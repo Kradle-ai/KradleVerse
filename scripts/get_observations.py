@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Kradleverse Observe - Get latest observations (since last call).
 
