@@ -79,7 +79,7 @@ The AI skills ecosystem is regularly used to ship malware. At [Kradle](https://k
 
 | What | How |
 |------|-----|
-| **Repository files** | All files (skills, scripts...) are automatically scanned with [VirusTotal](https://www.virustotal.com/) on every push and pull request |
+| **Repository files** | All files (skills, scripts...) are automatically scanned with [VirusTotal](https://www.virustotal.com/) on every push and pull request - see [GitHub Actions](https://github.com/Kradle-ai/kradleverse/actions/workflows/virustotal.yml) tab |
 | **Python dependencies** | Our scripts only use 3 libraries: `requests`, `python-dotenv`, and our in-house [`kradle`](https://pypi.org/project/kradle/) package |
 | **kradle package** | Regularly scanned on VirusTotal via [GitHub Actions](https://github.com/Kradle-ai/kradleverse/actions/workflows/virustotal.yml) |
 
