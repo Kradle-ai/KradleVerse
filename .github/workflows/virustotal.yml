@@ -88,22 +88,43 @@ jobs:
       - name: Download kradle package from PyPI
         run: pip download kradle --no-deps -d kradle-pkg/
 
-      - name: VirusTotal Scan
+      - name: Upload or fetch existing VirusTotal report
         id: vt
-        uses: crazy-max/ghaction-virustotal@v4
-        with:
-          vt_api_key: ${{ secrets.VT_API_KEY }}
-          files: |
-            kradle-pkg/*
-
-      - name: Wait for analysis and check results
         env:
           VT_API_KEY: ${{ secrets.VT_API_KEY }}
-          VT_ANALYSIS: ${{ steps.vt.outputs.analysis }}
         run: |
-          ANALYSIS_URL=$(echo "$VT_ANALYSIS" | cut -d'=' -f2-)
-          ANALYSIS_ID=$(echo "$ANALYSIS_URL" | grep -oP '[^/]+(?=/detection)')
+          FILE=$(ls kradle-pkg/*.whl)
+          SHA256=$(sha256sum "$FILE" | cut -d' ' -f1)
+          echo "File: $FILE (sha256: $SHA256)"
 
+          # Try uploading the file
+          HTTP_CODE=$(curl -s -o /tmp/vt-response.json -w "%{http_code}" \
+            --header "x-apikey: $VT_API_KEY" \
+            --form "file=@$FILE" \
+            "https://www.virustotal.com/api/v3/files")
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            ANALYSIS_ID=$(jq -r '.data.id' /tmp/vt-response.json)
+            echo "Uploaded successfully, analysis: $ANALYSIS_ID"
+            echo "mode=new" >> "$GITHUB_OUTPUT"
+            echo "analysis_id=$ANALYSIS_ID" >> "$GITHUB_OUTPUT"
+          # 409 = "AlreadyExistsError": https://docs.virustotal.com/reference/errors
+          elif [ "$HTTP_CODE" = "409" ]; then
+            echo "File already exists on VirusTotal, fetching existing report..."
+            echo "mode=existing" >> "$GITHUB_OUTPUT"
+            echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::VirusTotal upload failed with HTTP $HTTP_CODE"
+            cat /tmp/vt-response.json
+            exit 1
+          fi
+
+      - name: Wait for new analysis
+        if: steps.vt.outputs.mode == 'new'
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          ANALYSIS_ID: ${{ steps.vt.outputs.analysis_id }}
+        run: |
           echo "Polling analysis $ANALYSIS_ID ..."
           for i in $(seq 1 30); do
             echo "waiting 60s ($i/30)"
@@ -113,40 +134,66 @@ jobs:
             STATUS=$(echo "$RESPONSE" | jq -r '.data.attributes.status')
 
             if [ "$STATUS" = "completed" ]; then
-              STATS=$(echo "$RESPONSE" | jq '.data.attributes.stats')
-              MALICIOUS=$(echo "$STATS" | jq '.malicious')
-              SUSPICIOUS=$(echo "$STATS" | jq '.suspicious')
-              UNDETECTED=$(echo "$STATS" | jq '.undetected')
-              HARMLESS=$(echo "$STATS" | jq '.harmless')
-
-              {
-                echo "## VirusTotal — Kradle PyPI Package"
-                echo ""
-                echo "[View full analysis on VirusTotal]($ANALYSIS_URL)"
-                echo ""
-                echo "| Malicious | Suspicious | Undetected | Harmless |"
-                echo "|-----------|------------|------------|----------|"
-                echo "| $MALICIOUS | $SUSPICIOUS | $UNDETECTED | $HARMLESS |"
-                echo ""
-                echo "<details><summary>Engine results</summary>"
-                echo ""
-                echo "| Engine | Category | Result |"
-                echo "|--------|----------|--------|"
-                echo "$RESPONSE" | jq -r '.data.attributes.results | to_entries[] | "| \(.key) | \(.value.category) | \(.value.result // "—") |"'
-                echo ""
-                echo "</details>"
-              } >> "$GITHUB_STEP_SUMMARY"
-
-              echo "Analysis complete: malicious=$MALICIOUS suspicious=$SUSPICIOUS"
-
-              if [ "$MALICIOUS" -gt 0 ] || [ "$SUSPICIOUS" -gt 0 ]; then
-                echo "::error::VirusTotal detected $MALICIOUS malicious and $SUSPICIOUS suspicious results"
-                exit 1
-              fi
+              echo "$RESPONSE" > /tmp/vt-analysis.json
+              SHA256=$(echo "$RESPONSE" | jq -r '.meta.file_info.sha256')
+              echo "https://www.virustotal.com/gui/file/$SHA256" > /tmp/vt-url.txt
               exit 0
             fi
-
             echo "Status: $STATUS"
           done
           echo "::error::Timed out waiting for VirusTotal analysis"
           exit 1
+
+      - name: Fetch existing report (409 — already scanned by VirusTotal)
+        if: steps.vt.outputs.mode == 'existing'
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          SHA256: ${{ steps.vt.outputs.sha256 }}
+        run: |
+          echo "File was already scanned by VirusTotal, fetching existing report..."
+          curl -s --header "x-apikey: $VT_API_KEY" \
+            "https://www.virustotal.com/api/v3/files/$SHA256" > /tmp/vt-analysis.json
+          echo "https://www.virustotal.com/gui/file/$SHA256" > /tmp/vt-url.txt
+
+      - name: Check results
+        run: |
+          RESPONSE=$(cat /tmp/vt-analysis.json)
+          ANALYSIS_URL=$(cat /tmp/vt-url.txt)
+          MODE="${{ steps.vt.outputs.mode }}"
+
+          # Handle both analysis and file report response formats
+          STATS=$(echo "$RESPONSE" | jq '.data.attributes.last_analysis_stats // .data.attributes.stats')
+          RESULTS=$(echo "$RESPONSE" | jq '.data.attributes.last_analysis_results // .data.attributes.results')
+          MALICIOUS=$(echo "$STATS" | jq '.malicious')
+          SUSPICIOUS=$(echo "$STATS" | jq '.suspicious')
+          UNDETECTED=$(echo "$STATS" | jq '.undetected')
+          HARMLESS=$(echo "$STATS" | jq '.harmless')
+
+          {
+            echo "## VirusTotal — Kradle PyPI Package"
+            echo ""
+            if [ "$MODE" = "existing" ]; then
+              echo "> File was already scanned by VirusTotal (409). Showing existing report."
+              echo ""
+            fi
+            echo "[View full analysis on VirusTotal]($ANALYSIS_URL)"
+            echo ""
+            echo "| Malicious | Suspicious | Undetected | Harmless |"
+            echo "|-----------|------------|------------|----------|"
+            echo "| $MALICIOUS | $SUSPICIOUS | $UNDETECTED | $HARMLESS |"
+            echo ""
+            echo "<details><summary>Engine results</summary>"
+            echo ""
+            echo "| Engine | Category | Result |"
+            echo "|--------|----------|--------|"
+            echo "$RESULTS" | jq -r 'to_entries[] | "| \(.key) | \(.value.category) | \(.value.result // "—") |"'
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Analysis complete: malicious=$MALICIOUS suspicious=$SUSPICIOUS"
+
+          if [ "$MALICIOUS" -gt 0 ] || [ "$SUSPICIOUS" -gt 0 ]; then
+            echo "::error::VirusTotal detected $MALICIOUS malicious and $SUSPICIOUS suspicious results"
+            exit 1
+          fi
