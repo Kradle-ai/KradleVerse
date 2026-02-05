@@ -1,0 +1,152 @@
+name: VirusTotal Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan-repo:
+    name: Scan repo files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Archive repo
+        run: git archive --format=tar.gz -o repo-scan.tar.gz HEAD
+
+      - name: VirusTotal Scan
+        id: vt
+        uses: crazy-max/ghaction-virustotal@v4
+        with:
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          files: |
+            repo-scan.tar.gz
+
+      - name: Wait for analysis and check results
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          VT_ANALYSIS: ${{ steps.vt.outputs.analysis }}
+        run: |
+          ANALYSIS_URL=$(echo "$VT_ANALYSIS" | cut -d'=' -f2-)
+          ANALYSIS_ID=$(echo "$ANALYSIS_URL" | grep -oP '[^/]+(?=/detection)')
+
+          echo "Polling analysis $ANALYSIS_ID ..."
+          for i in $(seq 1 30); do
+            echo "waiting 60s ($i/30)"
+            sleep 60
+            RESPONSE=$(curl -s --header "x-apikey: $VT_API_KEY" \
+              "https://www.virustotal.com/api/v3/analyses/$ANALYSIS_ID")
+            STATUS=$(echo "$RESPONSE" | jq -r '.data.attributes.status')
+
+            if [ "$STATUS" = "completed" ]; then
+              STATS=$(echo "$RESPONSE" | jq '.data.attributes.stats')
+              MALICIOUS=$(echo "$STATS" | jq '.malicious')
+              SUSPICIOUS=$(echo "$STATS" | jq '.suspicious')
+              UNDETECTED=$(echo "$STATS" | jq '.undetected')
+              HARMLESS=$(echo "$STATS" | jq '.harmless')
+
+              {
+                echo "## VirusTotal — Repo Scan"
+                echo ""
+                echo "[View full analysis on VirusTotal]($ANALYSIS_URL)"
+                echo ""
+                echo "| Malicious | Suspicious | Undetected | Harmless |"
+                echo "|-----------|------------|------------|----------|"
+                echo "| $MALICIOUS | $SUSPICIOUS | $UNDETECTED | $HARMLESS |"
+                echo ""
+                echo "<details><summary>Engine results</summary>"
+                echo ""
+                echo "| Engine | Category | Result |"
+                echo "|--------|----------|--------|"
+                echo "$RESPONSE" | jq -r '.data.attributes.results | to_entries[] | "| \(.key) | \(.value.category) | \(.value.result // "—") |"'
+                echo ""
+                echo "</details>"
+              } >> "$GITHUB_STEP_SUMMARY"
+
+              echo "Analysis complete: malicious=$MALICIOUS suspicious=$SUSPICIOUS"
+
+              if [ "$MALICIOUS" -gt 0 ] || [ "$SUSPICIOUS" -gt 0 ]; then
+                echo "::error::VirusTotal detected $MALICIOUS malicious and $SUSPICIOUS suspicious results"
+                exit 1
+              fi
+              exit 0
+            fi
+
+            echo "Status: $STATUS"
+          done
+          echo "::error::Timed out waiting for VirusTotal analysis"
+          exit 1
+
+  scan-kradle-pypi-package:
+    name: Scan kradle PyPI package
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download kradle package from PyPI
+        run: pip download kradle --no-deps -d kradle-pkg/
+
+      - name: VirusTotal Scan
+        id: vt
+        uses: crazy-max/ghaction-virustotal@v4
+        with:
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          files: |
+            kradle-pkg/*
+
+      - name: Wait for analysis and check results
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          VT_ANALYSIS: ${{ steps.vt.outputs.analysis }}
+        run: |
+          ANALYSIS_URL=$(echo "$VT_ANALYSIS" | cut -d'=' -f2-)
+          ANALYSIS_ID=$(echo "$ANALYSIS_URL" | grep -oP '[^/]+(?=/detection)')
+
+          echo "Polling analysis $ANALYSIS_ID ..."
+          for i in $(seq 1 30); do
+            echo "waiting 60s ($i/30)"
+            sleep 60
+            RESPONSE=$(curl -s --header "x-apikey: $VT_API_KEY" \
+              "https://www.virustotal.com/api/v3/analyses/$ANALYSIS_ID")
+            STATUS=$(echo "$RESPONSE" | jq -r '.data.attributes.status')
+
+            if [ "$STATUS" = "completed" ]; then
+              STATS=$(echo "$RESPONSE" | jq '.data.attributes.stats')
+              MALICIOUS=$(echo "$STATS" | jq '.malicious')
+              SUSPICIOUS=$(echo "$STATS" | jq '.suspicious')
+              UNDETECTED=$(echo "$STATS" | jq '.undetected')
+              HARMLESS=$(echo "$STATS" | jq '.harmless')
+
+              {
+                echo "## VirusTotal — Kradle PyPI Package"
+                echo ""
+                echo "[View full analysis on VirusTotal]($ANALYSIS_URL)"
+                echo ""
+                echo "| Malicious | Suspicious | Undetected | Harmless |"
+                echo "|-----------|------------|------------|----------|"
+                echo "| $MALICIOUS | $SUSPICIOUS | $UNDETECTED | $HARMLESS |"
+                echo ""
+                echo "<details><summary>Engine results</summary>"
+                echo ""
+                echo "| Engine | Category | Result |"
+                echo "|--------|----------|--------|"
+                echo "$RESPONSE" | jq -r '.data.attributes.results | to_entries[] | "| \(.key) | \(.value.category) | \(.value.result // "—") |"'
+                echo ""
+                echo "</details>"
+              } >> "$GITHUB_STEP_SUMMARY"
+
+              echo "Analysis complete: malicious=$MALICIOUS suspicious=$SUSPICIOUS"
+
+              if [ "$MALICIOUS" -gt 0 ] || [ "$SUSPICIOUS" -gt 0 ]; then
+                echo "::error::VirusTotal detected $MALICIOUS malicious and $SUSPICIOUS suspicious results"
+                exit 1
+              fi
+              exit 0
+            fi
+
+            echo "Status: $STATUS"
+          done
+          echo "::error::Timed out waiting for VirusTotal analysis"
+          exit 1
