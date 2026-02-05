@@ -30,31 +30,52 @@ jobs:
           VT_API_KEY: ${{ secrets.VT_API_KEY }}
           VT_ANALYSIS: ${{ steps.vt.outputs.analysis }}
         run: |
-          # Extract analysis ID from URL (format: filename=https://.../<id>/detection)
           ANALYSIS_URL=$(echo "$VT_ANALYSIS" | cut -d'=' -f2-)
           ANALYSIS_ID=$(echo "$ANALYSIS_URL" | grep -oP '[^/]+(?=/detection)')
 
           echo "Polling analysis $ANALYSIS_ID ..."
           for i in $(seq 1 30); do
+            echo "waiting 60s ($i/30)"
+            sleep 60
             RESPONSE=$(curl -s --header "x-apikey: $VT_API_KEY" \
               "https://www.virustotal.com/api/v3/analyses/$ANALYSIS_ID")
             STATUS=$(echo "$RESPONSE" | jq -r '.data.attributes.status')
 
             if [ "$STATUS" = "completed" ]; then
-              MALICIOUS=$(echo "$RESPONSE" | jq '.data.attributes.stats.malicious')
-              SUSPICIOUS=$(echo "$RESPONSE" | jq '.data.attributes.stats.suspicious')
+              STATS=$(echo "$RESPONSE" | jq '.data.attributes.stats')
+              MALICIOUS=$(echo "$STATS" | jq '.malicious')
+              SUSPICIOUS=$(echo "$STATS" | jq '.suspicious')
+              UNDETECTED=$(echo "$STATS" | jq '.undetected')
+              HARMLESS=$(echo "$STATS" | jq '.harmless')
+
+              {
+                echo "## VirusTotal — Repo Scan"
+                echo ""
+                echo "[View full analysis on VirusTotal]($ANALYSIS_URL)"
+                echo ""
+                echo "| Malicious | Suspicious | Undetected | Harmless |"
+                echo "|-----------|------------|------------|----------|"
+                echo "| $MALICIOUS | $SUSPICIOUS | $UNDETECTED | $HARMLESS |"
+                echo ""
+                echo "<details><summary>Engine results</summary>"
+                echo ""
+                echo "| Engine | Category | Result |"
+                echo "|--------|----------|--------|"
+                echo "$RESPONSE" | jq -r '.data.attributes.results | to_entries[] | "| \(.key) | \(.value.category) | \(.value.result // "—") |"'
+                echo ""
+                echo "</details>"
+              } >> "$GITHUB_STEP_SUMMARY"
+
               echo "Analysis complete: malicious=$MALICIOUS suspicious=$SUSPICIOUS"
 
               if [ "$MALICIOUS" -gt 0 ] || [ "$SUSPICIOUS" -gt 0 ]; then
                 echo "::error::VirusTotal detected $MALICIOUS malicious and $SUSPICIOUS suspicious results"
-                echo "$RESPONSE" | jq '.data.attributes.results | to_entries[] | select(.value.category == "malicious" or .value.category == "suspicious") | {engine: .key, category: .value.category, result: .value.result}'
                 exit 1
               fi
               exit 0
             fi
 
-            echo "Status: $STATUS — waiting 15s ($i/30)"
-            sleep 60
+            echo "Status: $STATUS"
           done
           echo "::error::Timed out waiting for VirusTotal analysis"
           exit 1
@@ -80,31 +101,52 @@ jobs:
           VT_API_KEY: ${{ secrets.VT_API_KEY }}
           VT_ANALYSIS: ${{ steps.vt.outputs.analysis }}
         run: |
-          # Extract analysis ID from URL (format: filename=https://.../<id>/detection)
           ANALYSIS_URL=$(echo "$VT_ANALYSIS" | cut -d'=' -f2-)
           ANALYSIS_ID=$(echo "$ANALYSIS_URL" | grep -oP '[^/]+(?=/detection)')
 
           echo "Polling analysis $ANALYSIS_ID ..."
           for i in $(seq 1 30); do
+            echo "waiting 60s ($i/30)"
+            sleep 60
             RESPONSE=$(curl -s --header "x-apikey: $VT_API_KEY" \
               "https://www.virustotal.com/api/v3/analyses/$ANALYSIS_ID")
             STATUS=$(echo "$RESPONSE" | jq -r '.data.attributes.status')
 
             if [ "$STATUS" = "completed" ]; then
-              MALICIOUS=$(echo "$RESPONSE" | jq '.data.attributes.stats.malicious')
-              SUSPICIOUS=$(echo "$RESPONSE" | jq '.data.attributes.stats.suspicious')
+              STATS=$(echo "$RESPONSE" | jq '.data.attributes.stats')
+              MALICIOUS=$(echo "$STATS" | jq '.malicious')
+              SUSPICIOUS=$(echo "$STATS" | jq '.suspicious')
+              UNDETECTED=$(echo "$STATS" | jq '.undetected')
+              HARMLESS=$(echo "$STATS" | jq '.harmless')
+
+              {
+                echo "## VirusTotal — Kradle PyPI Package"
+                echo ""
+                echo "[View full analysis on VirusTotal]($ANALYSIS_URL)"
+                echo ""
+                echo "| Malicious | Suspicious | Undetected | Harmless |"
+                echo "|-----------|------------|------------|----------|"
+                echo "| $MALICIOUS | $SUSPICIOUS | $UNDETECTED | $HARMLESS |"
+                echo ""
+                echo "<details><summary>Engine results</summary>"
+                echo ""
+                echo "| Engine | Category | Result |"
+                echo "|--------|----------|--------|"
+                echo "$RESPONSE" | jq -r '.data.attributes.results | to_entries[] | "| \(.key) | \(.value.category) | \(.value.result // "—") |"'
+                echo ""
+                echo "</details>"
+              } >> "$GITHUB_STEP_SUMMARY"
+
               echo "Analysis complete: malicious=$MALICIOUS suspicious=$SUSPICIOUS"
 
               if [ "$MALICIOUS" -gt 0 ] || [ "$SUSPICIOUS" -gt 0 ]; then
                 echo "::error::VirusTotal detected $MALICIOUS malicious and $SUSPICIOUS suspicious results"
-                echo "$RESPONSE" | jq '.data.attributes.results | to_entries[] | select(.value.category == "malicious" or .value.category == "suspicious") | {engine: .key, category: .value.category, result: .value.result}'
                 exit 1
               fi
               exit 0
             fi
 
-            echo "Status: $STATUS — waiting 15s ($i/30)"
-            sleep 60
+            echo "Status: $STATUS"
           done
           echo "::error::Timed out waiting for VirusTotal analysis"
           exit 1
