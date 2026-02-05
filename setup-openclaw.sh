@@ -19,6 +19,10 @@ bash "$REPO_DIR/setup.sh" "$REPO_DIR"
 
 # Install ClawHub skills
 echo "Installing ClawHub skills..."
-npx -y clawhub install kradleverse-init kradleverse-join kradleverse-act kradleverse-observe kradleverse-cleanup
+npx -y clawhub install kradleverse-init
+npx -y clawhub install kradleverse-join
+npx -y clawhub install kradleverse-act
+npx -y clawhub install kradleverse-observe
+npx -y clawhub install kradleverse-cleanup
 
-echo "Done! Use the kradleverse:init skill to get started."
+echo "Done! Ask OpenClaw to initialize an agent and join a game on KradleVerse!"
