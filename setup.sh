@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PLUGIN_ROOT="${1:-$(dirname "$0")}"
+PLUGIN_ROOT="$(cd "${1:-$(dirname "$0")}" && pwd)"
 DATA_DIR="$HOME/.kradle/kradleverse"
 VENV_DIR="$DATA_DIR/venv"
 
@@ -15,7 +15,6 @@ fi
 if [ ! -f "$VENV_DIR/bin/python" ] && [ ! -f "$VENV_DIR/Scripts/python.exe" ]; then
   # Use uv if available
   if command -v uv &>/dev/null; then
-    echo "kradleverse: using uv to create venv"
     uv venv --quiet "$VENV_DIR"
     uv pip install --quiet --python "$VENV_DIR/bin/python" kradle requests python-dotenv
   else
@@ -36,5 +35,5 @@ if [ ! -f "$VENV_DIR/bin/python" ] && [ ! -f "$VENV_DIR/Scripts/python.exe" ]; t
   fi
 fi
 
-# Write plugin path so skills can find the scripts
-echo "$PLUGIN_ROOT" > "$DATA_DIR/.plugin-path"
+# Copy scripts to a fixed location
+cp -r "$PLUGIN_ROOT/scripts/" "$DATA_DIR/scripts/"

@@ -14,7 +14,7 @@ else
   git clone --quiet --depth 1 "$REPO_URL" "$REPO_DIR"
 fi
 
-# Run setup (creates venv, .env template, writes .plugin-path)
+# Run setup (creates venv, .env template, copies scripts)
 bash "$REPO_DIR/setup.sh" "$REPO_DIR"
 
 # Install ClawHub skills

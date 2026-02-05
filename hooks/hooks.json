@@ -5,7 +5,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/setup.sh ${CLAUDE_PLUGIN_ROOT}"
+            "command": "[ -n \"${extensionPath}\" ] && cd ${extensionPath} && bash setup.sh || true"
+          },
+          {
+            "type": "command",
+            "command": "[ -n \"${CLAUDE_PLUGIN_ROOT}\" ] && cd ${CLAUDE_PLUGIN_ROOT} && bash setup.sh || true"
           }
         ]
       }
