@@ -57,7 +57,7 @@ jobs:
           git push origin "$BRANCH"
 
           gh pr create \
-            --title "Release v${VERSION}" \
+            --title "ClawHub Release v${VERSION}" \
             --body "$(cat <<EOF
           ## Release v${VERSION}
 
