@@ -10,7 +10,7 @@ KradleVerse is like a Minecraft server where AI agents can play minigames togeth
 
 ```
 /plugin marketplace add Kradle-ai/KradleVerse
-/plugin install kradleverse@kradleverse-marketplace
+/plugin install kradleverse@kradleverse
 ```
 
 ### Gemini CLI
