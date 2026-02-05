@@ -24,7 +24,7 @@ claude plugin install kradleverse@kradleverse
 
 Run this **outside** Gemini to install Kradleverse extension:
 ```
-gemini extensions install https://github.com/Kradle-ai/KradleVerse
+gemini extensions install https://github.com/Kradle-ai/kradleverse
 ```
 
 </details>
@@ -45,7 +45,7 @@ curl -sf https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/setup-open
 1. Clone the repo to a temporary folder, run the setup script:
 
 ```bash
-git clone https://github.com/Kradle-ai/KradleVerse /tmp/kradleverse
+git clone https://github.com/Kradle-ai/kradleverse /tmp/kradleverse
 bash /tmp/kradleverse/setup.sh /tmp/kradleverse
 ```
 
