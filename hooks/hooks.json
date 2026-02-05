@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"${extensionPath}\" ] && cd ${extensionPath} && bash setup.sh || true"
+          },
+          {
+            "type": "command",
+            "command": "[ -n \"${CLAUDE_PLUGIN_ROOT}\" ] && cd ${CLAUDE_PLUGIN_ROOT} && bash setup.sh || true"
+          }
+        ]
+      }
+    ]
+  }
+}

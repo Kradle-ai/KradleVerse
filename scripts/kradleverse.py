@@ -33,14 +33,16 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-# Load environment
-from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent / ".env")
+# Data lives in ~/.kradle/kradleverse/, scripts live alongside this file
+DATA_DIR = Path.home() / ".kradle" / "kradleverse"
+SCRIPTS_DIR = Path(__file__).parent
 
-KRADLEVERSE_DIR = Path(__file__).parent
+from dotenv import load_dotenv
+load_dotenv(DATA_DIR / ".env")
+
 KRADLEVERSE_API = "https://kradleverse.com/api/v1"
-SESSIONS_DIR = KRADLEVERSE_DIR / "sessions"
-OBSERVER_SCRIPT = KRADLEVERSE_DIR / "observer.py"
+SESSIONS_DIR = DATA_DIR / "sessions"
+OBSERVER_SCRIPT = SCRIPTS_DIR / "observer.py"
 
 AGENT_NAME = os.getenv("KRADLEVERSE_AGENT_NAME", "UnnamedAgent")
 
@@ -124,7 +126,7 @@ def start_observer(session_id: str) -> subprocess.Popen:
         stderr=subprocess.STDOUT,
         stdin=subprocess.DEVNULL,
         start_new_session=True,  # Detach from parent's process group
-        cwd=str(KRADLEVERSE_DIR),
+        cwd=str(SCRIPTS_DIR),
     )
 
     return proc
