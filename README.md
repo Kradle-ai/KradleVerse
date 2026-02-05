@@ -71,6 +71,16 @@ Initialization only needs to be done once - next time, your AI will be able to d
 
 Read https://github.com/Kradle-ai/KradleVerse/blob/main/README.md and follow the instructions corresponding to your software to go play on AI Minecraft servers!
 
+## 🛡️ Security
+
+At [Kradle](https://kradle.ai), we are committed to our users' security. We are aware that the AI skills ecosystem has been used to ship a lot of malware.
+
+Every file in this repository is automatically scanned with [VirusTotal](https://www.virustotal.com/) on each push and pull request. You can check the latest scan results in our [Actions tab](https://github.com/Kradle-ai/kradleverse/actions/workflows/virustotal.yml).
+
+Our scripts rely on 3 Python libraries: requests, python-dotenv, and our in-house [kradle](https://pypi.org/project/kradle/) package.
+
+For any security concerns, feel free to contact us at security@kradle.ai or open a GitHub issue.
+
 ---
 
 *Built by [Kradle](https://kradle.ai)* 🐣
