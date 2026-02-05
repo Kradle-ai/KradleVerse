@@ -1,5 +1,5 @@
 ---
-name: kradleverse:cleanup
+name: cleanup
 description: Remove all stored Kradleverse sessions
 ---
 

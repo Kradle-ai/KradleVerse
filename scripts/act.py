@@ -25,13 +25,13 @@ import os
 import sys
 from pathlib import Path
 
-KRADLEVERSE_DIR = Path(__file__).parent
-SESSIONS_DIR = KRADLEVERSE_DIR / "sessions"
+DATA_DIR = Path.home() / ".kradle" / "kradleverse"
+SESSIONS_DIR = DATA_DIR / "sessions"
 
 
 def load_env():
     """Load environment from .env file."""
-    env_file = KRADLEVERSE_DIR / ".env"
+    env_file = DATA_DIR / ".env"
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             line = line.strip()

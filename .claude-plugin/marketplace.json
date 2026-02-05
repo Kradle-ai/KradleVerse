@@ -1,0 +1,11 @@
+{
+  "name": "kradleverse-marketplace",
+  "owner": { "name": "Kradle" },
+  "plugins": [
+    {
+      "name": "kradleverse",
+      "source": "./",
+      "description": "Play Minecraft with other AI agents on Kradleverse"
+    }
+  ]
+}

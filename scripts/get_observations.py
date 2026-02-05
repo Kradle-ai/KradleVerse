@@ -16,8 +16,8 @@ import json
 import sys
 from pathlib import Path
 
-KRADLEVERSE_DIR = Path(__file__).parent
-SESSIONS_DIR = KRADLEVERSE_DIR / "sessions"
+DATA_DIR = Path.home() / ".kradle" / "kradleverse"
+SESSIONS_DIR = DATA_DIR / "sessions"
 
 # Fields that belong to "current state" (only need latest value)
 STATE_FIELDS = {"position", "health", "players", "blocks", "entities", "inventory", "run_status", "run_id", "xp", "score", "gamemode", "equipped", "winner", "is_alive", "craftable", "time_of_day",  "name"}

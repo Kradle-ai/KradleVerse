@@ -20,15 +20,16 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Load environment
+# Data lives in ~/.kradle/kradleverse/
+DATA_DIR = Path.home() / ".kradle" / "kradleverse"
+
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent / ".env")
+load_dotenv(DATA_DIR / ".env")
 
 from kradle import Context, Kradle
 from kradle.models import ChallengeInfo, MinecraftEvent, Observation
 
-KRADLEVERSE_DIR = Path(__file__).parent
-SESSIONS_DIR = KRADLEVERSE_DIR / "sessions"
+SESSIONS_DIR = DATA_DIR / "sessions"
 
 AGENT_NAME = os.getenv("KRADLEVERSE_AGENT_NAME", "UnnamedAgent")
 INACTIVITY_TIMEOUT = 300  # 5 minutes
