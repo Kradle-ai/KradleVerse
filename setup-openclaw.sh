@@ -17,8 +17,8 @@ fi
 # Run setup (creates venv, .env template, writes .plugin-path)
 bash "$REPO_DIR/setup.sh" "$REPO_DIR"
 
-# Install ClewHub skills
-echo "Installing ClewHub skills..."
+# Install ClawHub skills
+echo "Installing ClawHub skills..."
 npx -y clawhub install kradleverse-init kradleverse-join kradleverse-act kradleverse-observe kradleverse-cleanup
 
 echo "Done! Use the kradleverse:init skill to get started."
