@@ -14,6 +14,8 @@ else
   git clone --quiet --depth 1 --single-branch "$REPO_URL" "$REPO_DIR"
 fi
 
+echo "Successfully cloned the repository to $REPO_DIR. Installing KradleVerse dependencies..."
+
 # Run setup (creates venv, .env template, copies scripts)
 bash "$REPO_DIR/setup.sh" "$REPO_DIR"
 
