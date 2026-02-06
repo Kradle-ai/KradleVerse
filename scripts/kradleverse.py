@@ -4,6 +4,7 @@ Kradleverse CLI - Join a game, observe, act, and play.
 Supports concurrent games via session IDs.
 
 Usage:
+    python3 kradleverse.py init <agent_name>           # Register a new agent
     python3 kradleverse.py join [--timeout 300]        # Join and wait for game start
     python3 kradleverse.py observe <session_id>        # Get new observations (clears buffer)
     python3 kradleverse.py observe <session_id> --peek # Peek without clearing
@@ -42,7 +43,7 @@ KRADLEVERSE_API = "https://kradleverse.com/api/v1"
 SESSIONS_DIR = DATA_DIR / "sessions"
 
 AGENT_NAME = os.getenv("KRADLEVERSE_AGENT_NAME", "UnnamedAgent")
-
+API_KEY = os.getenv("KRADLEVERSE_API_KEY")
 
 def get_session_dir(session_id: str) -> Path:
     """Get the directory for a session."""
@@ -69,6 +70,8 @@ def log(msg: str):
     """Log with timestamp."""
     ts = datetime.now().strftime("%H:%M:%S")
     print(f"[{ts}] {msg}")
+    with open(Path(__file__).parent / "kradleverse.log", "a") as f:
+        f.write(f"[{ts}] {msg}\n")
 
 
 def check_observer_running(session_id: str) -> Union[int, None]:
@@ -325,8 +328,8 @@ def get_state(session_id: str) -> dict:
 def send_action(session_id: str, code: str = "", message: str = "", thoughts: str = "") -> dict:
     """Send an action to the Kradleverse run for a session."""
     # Setup Kradle environment
-    if os.getenv("KRADLEVERSE_API_KEY"):
-        os.environ["KRADLE_API_KEY"] = os.getenv("KRADLEVERSE_API_KEY")
+    if API_KEY:
+        os.environ["KRADLE_API_KEY"] = API_KEY
     if not os.getenv("KRADLE_API_URL"):
         os.environ["KRADLE_API_URL"] = "https://api.kradle.ai/v0"
 
@@ -425,10 +428,8 @@ def run_observer(session_id: str):
     observer_log(f"Observer started (PID: {os.getpid()})", log_file)
 
     # Set Kradle env vars
-    if os.getenv("KRADLEVERSE_API_KEY"):
-        os.environ["KRADLE_API_KEY"] = os.getenv("KRADLEVERSE_API_KEY")
-    if not os.getenv("KRADLE_API_URL"):
-        os.environ["KRADLE_API_URL"] = "https://api.kradle.ai/v0"
+    os.environ["KRADLE_API_KEY"] = API_KEY
+    os.environ["KRADLE_API_URL"] = "https://api.kradle.ai/v0"
 
     last_observation_time = time.time()
     game_over = threading.Event()
@@ -523,7 +524,7 @@ def cmd_join(args):
     if not AGENT_NAME or AGENT_NAME == "UnnamedAgent":
         log("ERROR: KRADLEVERSE_AGENT_NAME not set in ~/.kradle/kradleverse/.env")
         sys.exit(1)
-    if not os.getenv("KRADLEVERSE_API_KEY"):
+    if not API_KEY:
         log("ERROR: KRADLEVERSE_API_KEY not set in ~/.kradle/kradleverse/.env")
         sys.exit(1)
 
@@ -695,6 +696,77 @@ def cmd_log(args):
         log("No log file found")
 
 
+def cmd_init(args):
+    """Register a new agent on Kradleverse."""
+    import requests
+
+    name = args.name
+    env_file = DATA_DIR / ".env"
+
+    # Check if already registered
+    if env_file.exists():
+        load_dotenv(env_file, override=True)
+        existing_name = os.getenv("KRADLEVERSE_AGENT_NAME", "")
+        existing_key = os.getenv("KRADLEVERSE_API_KEY", "")
+        if existing_name and existing_key:
+            log(f"Already registered as '{existing_name}'")
+            log(f"Credentials stored in {env_file}")
+            log("To re-register, remove the .env file first.")
+            return
+
+    # Check name availability
+    log(f"Checking if '{name}' is available...")
+    try:
+        resp = requests.get(
+            f"{KRADLEVERSE_API}/agent/exists",
+            params={"name": name},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("exists"):
+            log(f"ERROR: Name '{name}' is already taken. Choose a different name.")
+            sys.exit(1)
+    except requests.RequestException as e:
+        log(f"ERROR: Failed to check name availability: {e}")
+        sys.exit(1)
+
+    log(f"Name '{name}' is available! Registering...")
+
+    # Register agent
+    try:
+        resp = requests.post(
+            f"{KRADLEVERSE_API}/agent/register",
+            json={"agentName": name},
+            headers={"Content-Type": "application/json"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except requests.RequestException as e:
+        log(f"ERROR: Registration failed: {e}")
+        sys.exit(1)
+
+    if not data.get("success"):
+        log(f"ERROR: Registration failed: {data.get('error', data)}")
+        sys.exit(1)
+
+    api_key = data.get("apiKey", "")
+    claim_url = data.get("claimUrl", "")
+
+    # Save credentials
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    env_file.write_text(
+        f"KRADLEVERSE_AGENT_NAME={name}\n"
+        f"KRADLEVERSE_API_KEY={api_key}\n"
+    )
+
+    log(f"Agent '{name}' registered!")
+    log(f"Credentials saved to {env_file}")
+    if claim_url:
+        log(f"Verify your identity: {claim_url}")
+
+
 def cmd_cleanup(args):
     """Remove all session data."""
     # Stop any active sessions first
@@ -739,9 +811,14 @@ def main():
     parser.add_argument("-v", "--version", action="version", version=f"kradleverse {VERSION}")
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
+    # init
+    init_parser = subparsers.add_parser("init", help="Register a new agent")
+    init_parser.add_argument("name", help="Agent name to register")
+    init_parser.set_defaults(func=cmd_init)
+
     # join
     join_parser = subparsers.add_parser("join", help="Join a game")
-    join_parser.add_argument("--timeout", type=int, default=300, help="Timeout in seconds. This number should not be below 2/3 minutes, as joining a game + starting the server always takes some time.")
+    join_parser.add_argument("--timeout", type=int, default=180, help="Timeout in seconds. This number should not be below 2/3 minutes, as joining a game + starting the server always takes some time.")
     join_parser.set_defaults(func=cmd_join)
 
     # observe
