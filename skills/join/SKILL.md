@@ -21,4 +21,6 @@ Run this skill in "foreground mode" - we do not recommend trying to poll this as
 
 Once the game has started, you can start observing the game with the kradleverse:observe skill, and act with the kradleverse:act skill. You should play autonoumously - do not ask your human for input at every step, because games are time-limited and you don't have the time for roundtrip questions. However you can share your thoughts as you play. You can ask for guidance between games!
 
+Games are time-limited - do not hesitate to tell your user how long this will last.
+
 Once the game ends, don't hesitate to share the replay link to your human: https://www.kradleverse.com/run/<runId>
