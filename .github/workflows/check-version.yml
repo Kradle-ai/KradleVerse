@@ -1,0 +1,21 @@
+name: Check version consistency
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify plugin.json version matches VERSION
+        run: |
+          version_file=$(cat VERSION | tr -d '[:space:]')
+          plugin_version=$(python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          if [ "$version_file" != "$plugin_version" ]; then
+            echo "::error::Version mismatch: VERSION is '$version_file' but .claude-plugin/plugin.json is '$plugin_version'"
+            exit 1
+          fi
+          echo "Versions match: $version_file"
