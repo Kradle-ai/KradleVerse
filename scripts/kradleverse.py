@@ -147,28 +147,60 @@ def wait_for_observer_ready(session_id: str, timeout: int = 300) -> bool:
     return False
 
 
-def join_queue() -> dict:
-    """Join the Kradleverse queue."""
+def api_call(method: str, path: str, *, json_body: dict = None, params: dict = None,
+             auth: bool = True, timeout: int = 30) -> dict:
+    """Make a request to the Kradleverse API.
+
+    Args:
+        method: HTTP method ("GET" or "POST").
+        path: API path (e.g. "/queue/join"). Appended to KRADLEVERSE_API base URL.
+        json_body: JSON body for POST requests.
+        params: Query parameters for GET requests.
+        auth: Include Authorization header (requires API_KEY).
+        timeout: Request timeout in seconds.
+
+    Returns:
+        Parsed JSON response as a dict.
+
+    Raises:
+        SystemExit: On HTTP errors or request failures.
+    """
     import requests
 
-    log(f"Joining queue as {AGENT_NAME}...")
-    resp = requests.post(
-        f"{KRADLEVERSE_API}/queue/join",
-        json={
-            "agentId": AGENT_NAME,
-            "myPythonServerIsRunning": True,
-            "iHaveEnabledTheGatewayAndSetMyselfAsTheAgentBrain": True,
-        },
-        headers={"Content-Type": "application/json"},
-        timeout=30,
-    )
+    url = f"{KRADLEVERSE_API}{path}"
+    headers = {"Content-Type": "application/json"}
+    if auth:
+        if not API_KEY:
+            log("ERROR: KRADLEVERSE_API_KEY not set in ~/.kradle/kradleverse/.env")
+            sys.exit(1)
+        headers["Authorization"] = f"Bearer {API_KEY}"
+
+    try:
+        resp = requests.request(
+            method, url, json=json_body, params=params,
+            headers=headers, timeout=timeout,
+        )
+    except requests.RequestException as e:
+        log(f"ERROR: API request failed: {e}")
+        sys.exit(1)
 
     if resp.status_code >= 400:
-        log(f"ERROR: Queue join failed: HTTP {resp.status_code}")
+        log(f"ERROR: {method} {path} failed: HTTP {resp.status_code}")
         log(f"  {resp.text[:500]}")
         sys.exit(1)
 
-    data = resp.json()
+    return resp.json()
+
+
+def join_queue() -> dict:
+    """Join the Kradleverse queue."""
+    log(f"Joining queue as {AGENT_NAME}...")
+    data = api_call("POST", "/queue/join", json_body={
+        "agentId": AGENT_NAME,
+        "myPythonServerIsRunning": True,
+        "iHaveEnabledTheGatewayAndSetMyselfAsTheAgentBrain": True,
+    })
+
     if data.get("success"):
         entry = data.get("queueEntry", {})
         log(f"In queue at position {entry.get('position', '?')}")
@@ -698,8 +730,6 @@ def cmd_log(args):
 
 def cmd_init(args):
     """Register a new agent on Kradleverse."""
-    import requests
-
     name = args.name
     env_file = DATA_DIR / ".env"
 
@@ -716,36 +746,15 @@ def cmd_init(args):
 
     # Check name availability
     log(f"Checking if '{name}' is available...")
-    try:
-        resp = requests.get(
-            f"{KRADLEVERSE_API}/agent/exists",
-            params={"name": name},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get("exists"):
-            log(f"ERROR: Name '{name}' is already taken. Choose a different name.")
-            sys.exit(1)
-    except requests.RequestException as e:
-        log(f"ERROR: Failed to check name availability: {e}")
+    data = api_call("GET", "/agent/exists", params={"name": name}, auth=False, timeout=10)
+    if data.get("exists"):
+        log(f"ERROR: Name '{name}' is already taken. Choose a different name.")
         sys.exit(1)
 
     log(f"Name '{name}' is available! Registering...")
 
     # Register agent
-    try:
-        resp = requests.post(
-            f"{KRADLEVERSE_API}/agent/register",
-            json={"agentName": name},
-            headers={"Content-Type": "application/json"},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-    except requests.RequestException as e:
-        log(f"ERROR: Registration failed: {e}")
-        sys.exit(1)
+    data = api_call("POST", "/agent/register", json_body={"agentName": name}, auth=False, timeout=10)
 
     if not data.get("success"):
         log(f"ERROR: Registration failed: {data.get('error', data)}")
