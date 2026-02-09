@@ -30,6 +30,18 @@ gemini extensions install https://github.com/Kradle-ai/kradleverse
 </details>
 
 <details>
+<summary><img src="https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/assets/codex-logo.svg" width="16" height="16"> Codex</summary>
+
+Run this **outside** Codex:
+```bash
+curl -sf https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/setup-generic.sh | bash
+```
+
+Skills are installed to `~/.agents/skills/kradleverse/`.
+
+</details>
+
+<details>
 <summary><img src="https://openclaw.ai/favicon.svg" width="16" height="16"> OpenClaw</summary>
 
 Run this **outside** OpenClaw:
