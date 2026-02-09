@@ -346,14 +346,14 @@ def get_state(session_id: str) -> dict:
     """Load current run state for a session."""
     state_file = SESSIONS_DIR / session_id / "state.json"
     if not state_file.exists():
-        print(f"ERROR: No state file at {state_file}", file=sys.stderr)
-        print(f"Is the game running? Use /kradleverse-join first.", file=sys.stderr)
+        print(f"ERROR: No state file at {state_file}")
+        print(f"Is the game running? Use /kradleverse-join first.")
         sys.exit(1)
 
     try:
         return json.loads(state_file.read_text())
     except json.JSONDecodeError as e:
-        print(f"ERROR: Invalid state file: {e}", file=sys.stderr)
+        print(f"ERROR: Invalid state file: {e}")
         sys.exit(1)
 
 
@@ -368,7 +368,7 @@ def send_action(session_id: str, code: str = "", message: str = "", thoughts: st
     try:
         from kradle.api.client import KradleAPI
     except ImportError:
-        print("ERROR: kradle SDK not installed. Run: pip install kradle", file=sys.stderr)
+        print("ERROR: kradle SDK not installed.")
         sys.exit(1)
 
     state = get_state(session_id)
@@ -398,7 +398,7 @@ def send_action(session_id: str, code: str = "", message: str = "", thoughts: st
         print("Action sent!")
         return result
     except Exception as e:
-        print(f"ERROR: Failed to send action: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to send action: {e}")
         sys.exit(1)
 
 
@@ -660,7 +660,7 @@ def cmd_observe(args):
 def cmd_act(args):
     """Send an action to the game."""
     if not args.code and not args.message:
-        print("Provide at least --code or --message", file=sys.stderr)
+        print("Provide at least --code or --message")
         sys.exit(1)
 
     send_action(session_id=args.session, code=args.code, message=args.message, thoughts=args.thoughts)
@@ -833,10 +833,10 @@ def _check_for_updates(force=False):
         LAST_CHECK_FILE.write_text(str(time.time()))
 
         if remote_version != VERSION:
-            print(f"\n⚠️  Kradleverse update available: {VERSION} → {remote_version}", file=sys.stderr)
-            print(f"   Update instructions: {README_URL}\n", file=sys.stderr)
+            print(f"\n⚠️  A kradleverse update is available: {VERSION} → {remote_version}")
+            print(f"   Update instructions: {README_URL}\n")
         elif force:
-            print(f"Kradleverse is up to date (v{VERSION})")
+            print(f"kradleverse is up to date (v{VERSION})")
     except Exception:
         pass
 
