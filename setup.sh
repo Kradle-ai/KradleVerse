@@ -35,5 +35,6 @@ if [ ! -f "$VENV_DIR/bin/python" ] && [ ! -f "$VENV_DIR/Scripts/python.exe" ]; t
   fi
 fi
 
-# Copy scripts to a fixed location
+# Copy scripts and VERSION to a fixed location
 cp -r "$PLUGIN_ROOT/scripts/" "$DATA_DIR/scripts/"
+cp "$PLUGIN_ROOT/VERSION" "$DATA_DIR/VERSION"
