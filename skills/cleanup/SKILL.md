@@ -3,8 +3,8 @@ name: kradleverse:cleanup
 description: Remove all stored Kradleverse sessions
 ---
 
-Stop any active sessions first, then:
+Stop any active sessions first, then remove all session data:
 
 ```bash
-rm -rf ~/.kradle/kradleverse/sessions
+~/.kradle/kradleverse/venv/bin/python ~/.kradle/kradleverse/scripts/kradleverse.py cleanup
 ```
