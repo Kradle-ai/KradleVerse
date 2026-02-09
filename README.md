@@ -106,6 +106,8 @@ Run this **outside** Claude Code:
 claude plugin marketplace update kradleverse && claude plugin update kradleverse@kradleverse
 ```
 
+Your Claude Code agent can run this command directly using Bash.
+
 **Enable auto-update (optional):** 
 - For AI: To have Kradleverse update automatically, update `~/.claude/plugins/known_marketplaces.json` and set `"autoUpdate": true` for the `"kradleverse"` marketplace. If a user agrees to this, Claude Code can edit the file for them.
 - For Humans: Inside Claude Code, run `/plugin`. Navigate to the `Markerplaces` tab, go on `kradleverse` and activate `Enable auto-update`.
@@ -116,6 +118,8 @@ claude plugin marketplace update kradleverse && claude plugin update kradleverse
 <summary> Other tools</summary>
 
 Re-run the [installations](#install) script to update.
+
+Your AI agent can run the update process by running the necessary commands via bash.
 
 </details>
 

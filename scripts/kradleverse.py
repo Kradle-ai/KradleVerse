@@ -38,7 +38,7 @@ SCRIPTS_DIR = Path(__file__).parent
 from dotenv import load_dotenv
 load_dotenv(DATA_DIR / ".env")
 
-VERSION = (SCRIPTS_DIR / "VERSION").read_text().strip()
+VERSION = (SCRIPTS_DIR / ".." / "VERSION").read_text().strip()
 KRADLEVERSE_API = "https://kradleverse.com/api/v1"
 SESSIONS_DIR = DATA_DIR / "sessions"
 
@@ -813,7 +813,7 @@ def cmd_observer(args):
 
 LAST_CHECK_FILE = DATA_DIR / ".last_update_check"
 UPDATE_CHECK_INTERVAL = 12 * 60 * 60  # 12 hours
-REMOTE_VERSION_URL = "https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/scripts/VERSION"
+REMOTE_VERSION_URL = "https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/VERSION"
 README_URL = "https://github.com/Kradle-ai/KradleVerse#update"
 
 
@@ -835,6 +835,8 @@ def _check_for_updates(force=False):
         if remote_version != VERSION:
             print(f"\n⚠️  A kradleverse update is available: {VERSION} → {remote_version}")
             print(f"   Update instructions: {README_URL}\n")
+            print("    Please tell your user you can update to the latest version if they want to.")
+            print("    As an AI, you can update the version yourself (follow the same instructions) if the user agrees to. Always suggest to perform the update yourself before suggesting the user can do it themselves.")
         elif force:
             print(f"kradleverse is up to date (v{VERSION})")
     except Exception:
