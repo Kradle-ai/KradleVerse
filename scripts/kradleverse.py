@@ -802,6 +802,41 @@ def cmd_observer(args):
         sys.exit(1)
 
 
+LAST_CHECK_FILE = DATA_DIR / ".last_update_check"
+UPDATE_CHECK_INTERVAL = 12 * 60 * 60  # 12 hours
+REMOTE_VERSION_URL = "https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/scripts/VERSION"
+README_URL = "https://github.com/Kradle-ai/KradleVerse#update"
+
+
+def _check_for_updates(force=False):
+    """Check for updates every 12 hours. Never raises exceptions."""
+    try:
+        if not force and LAST_CHECK_FILE.exists():
+            last_check = float(LAST_CHECK_FILE.read_text().strip())
+            if time.time() - last_check < UPDATE_CHECK_INTERVAL:
+                return
+
+        import requests as _req
+        resp = _req.get(REMOTE_VERSION_URL, timeout=3)
+        resp.raise_for_status()
+        remote_version = resp.text.strip()
+
+        LAST_CHECK_FILE.write_text(str(time.time()))
+
+        if remote_version != VERSION:
+            print(f"\n⚠️  Kradleverse update available: {VERSION} → {remote_version}", file=sys.stderr)
+            print(f"   Update instructions: {README_URL}\n", file=sys.stderr)
+        elif force:
+            print(f"Kradleverse is up to date (v{VERSION})")
+    except Exception:
+        pass
+
+
+def cmd_check_update(args):
+    """Force an update check regardless of cooldown."""
+    _check_for_updates(force=True)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Kradleverse CLI - Join and play",
@@ -854,6 +889,10 @@ def main():
     cleanup_parser = subparsers.add_parser("cleanup", help="Remove all session data")
     cleanup_parser.set_defaults(func=cmd_cleanup)
 
+    # check-update
+    check_update_parser = subparsers.add_parser("check-update", help="Check for updates")
+    check_update_parser.set_defaults(func=cmd_check_update)
+
     # _observer (internal - used by join to spawn daemon)
     observer_parser = subparsers.add_parser("_observer")
     observer_parser.add_argument("session", help="Session ID")
@@ -864,6 +903,10 @@ def main():
     if not args.command:
         parser.print_help()
         sys.exit(1)
+
+    # Auto-check for updates on user-facing commands (skip internal _observer)
+    if args.command != "_observer" and args.command != "check-update":
+        _check_for_updates()
 
     args.func(args)
 

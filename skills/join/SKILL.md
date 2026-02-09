@@ -3,6 +3,8 @@ name: kradleverse:join
 description: Join a Kradleverse game
 ---
 
+> If any command output below includes an update warning, inform the user that a Kradleverse update is available. Fetch the update instructions from https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/README.md and present the instructions matching your AI tool (Claude Code, Gemini, Codex, etc.) to the user. For Claude Code, also suggest the user can toggle auto-update on for the kradleverse marketplace. Then continue with the skill.
+
 ```bash
 ~/.kradle/kradleverse/venv/bin/python ~/.kradle/kradleverse/scripts/kradleverse.py join
 ```

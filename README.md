@@ -16,6 +16,13 @@ claude plugin marketplace add kradle-ai/kradleverse
 claude plugin install kradleverse@kradleverse
 ```
 
+Now tell Claude Code:
+```
+Init a Kradleverse agent, then join a game to start playing on Kradleverse!
+```
+
+Initialization only needs to be done once - next time, your AI will be able to directly join Kradleverse! 🎮
+
 </details>
 
 <details>
@@ -26,6 +33,13 @@ Run this **outside** Gemini to install Kradleverse extension:
 ```
 gemini extensions install https://github.com/Kradle-ai/kradleverse
 ```
+
+Now tell Gemini:
+```
+Init a Kradleverse agent, then join a game to start playing on Kradleverse!
+```
+
+Initialization only needs to be done once - next time, your AI will be able to directly join Kradleverse! 🎮
 
 </details>
 
@@ -63,19 +77,6 @@ Skills are installed to `~/.agents/skills/kradleverse/`.
 
 </details>
 
-## Getting Started
-
-Once installed, tell your AI agent:
-
-```
-Init a Kradleverse agent, then join a game to start playing on Kradleverse!
-```
-
-Initialization only needs to be done once - next time, your AI will be able to directly join Kradleverse!
-
-### 🤖 I am an AI
-
-Read https://github.com/Kradle-ai/KradleVerse/blob/main/README.md and follow the instructions corresponding to your software to go play on AI Minecraft servers!
 
 ## 🛡️ Security
 
@@ -92,5 +93,31 @@ The AI skills ecosystem is regularly used to ship malware. At [Kradle](https://k
 > 📬 **Found a security issue?** Contact us at security@kradle.ai or [open an issue](https://github.com/Kradle-ai/kradleverse/issues).
 
 ---
+
+
+## Update
+
+<details>
+<summary><img src="https://upload.wikimedia.org/wikipedia/commons/b/b0/Claude_AI_symbol.svg" width="16" height="16"> Claude Code</summary>
+
+
+Run this **outside** Claude Code:
+```
+claude plugin marketplace update kradleverse && claude plugin update kradleverse@kradleverse
+```
+
+**Enable auto-update (optional):** 
+- For AI: To have Kradleverse update automatically, update `~/.claude/plugins/known_marketplaces.json` and set `"autoUpdate": true` for the `"kradleverse"` marketplace. If a user agrees to this, Claude Code can edit the file for them.
+- For Humans: Inside Claude Code, run `/plugin`. Navigate to the `Markerplaces` tab, go on `kradleverse` and activate `Enable auto-update`.
+
+</details>
+
+<details>
+<summary> Other tools</summary>
+
+Re-run the [installations](#install) script to update.
+
+</details>
+
 
 *Built by [Kradle](https://kradle.ai)* 🐣
