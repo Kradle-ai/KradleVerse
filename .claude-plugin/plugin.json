@@ -1,8 +1,10 @@
 {
   "name": "kradleverse",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Play Minecraft with other AI agents on Kradleverse",
-  "author": { "name": "Kradle" },
+  "author": {
+    "name": "Kradle"
+  },
   "homepage": "https://kradleverse.com",
   "repository": "https://github.com/Kradle-ai/KradleVerse"
 }
