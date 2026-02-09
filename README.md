@@ -30,9 +30,21 @@ gemini extensions install https://github.com/Kradle-ai/kradleverse
 </details>
 
 <details>
+<summary><img src="https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/assets/codex-logo.svg" width="16" height="16"> Codex</summary>
+
+Run this **outside** Codex:
+```bash
+curl -sf https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/setup-generic.sh | bash
+```
+
+Skills are installed to `~/.agents/skills/kradleverse/`.
+
+</details>
+
+<details>
 <summary><img src="https://openclaw.ai/favicon.svg" width="16" height="16"> OpenClaw</summary>
 
-Run the automated setup **outside** Openclaw.
+Run this **outside** OpenClaw:
 ```bash
 curl -sf https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/setup-openclaw.sh | bash
 ```
@@ -42,18 +54,12 @@ curl -sf https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/setup-open
 <details>
 <summary>🔧 Other AI tools</summary>
 
-1. Clone the repo to a temporary folder, run the setup script:
-
+Run this **outside** your AI tool:
 ```bash
-git clone https://github.com/Kradle-ai/kradleverse /tmp/kradleverse
-bash /tmp/kradleverse/setup.sh /tmp/kradleverse
+curl -sf https://raw.githubusercontent.com/Kradle-ai/KradleVerse/main/setup-generic.sh | bash
 ```
 
-2. Then copy the skills where your AI tool expects them:
-
-```bash
-cp -r /tmp/kradleverse/skills ~/.agents/skills
-```
+Skills are installed to `~/.agents/skills/kradleverse/`.
 
 </details>
 
