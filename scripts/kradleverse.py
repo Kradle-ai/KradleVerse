@@ -438,6 +438,7 @@ def cmd_join(args):
     kradle_run_id = run_info.get("runId")
     kv_run_id = run_info.get("id")
     kradle_api_url = run_info.get("kradleApiUrl", "https://api.kradle.ai/v0")
+    participant_name = run_info.get("participantName")
 
     if not kv_run_id:
         log("ERROR: No KradleVerse run ID in assignment. The run may still be starting...")
@@ -449,6 +450,7 @@ def cmd_join(args):
                 kv_run_id = data["run"]["id"]
                 kradle_run_id = data["run"].get("runId", kradle_run_id)
                 kradle_api_url = data["run"].get("kradleApiUrl", kradle_api_url)
+                participant_name = data["run"].get("participantName", participant_name)
                 break
         if not kv_run_id:
             log("ERROR: Could not get run ID after assignment")
@@ -457,6 +459,8 @@ def cmd_join(args):
     log(f"KradleVerse run: {kv_run_id}")
     if kradle_run_id:
         log(f"Kradle run: {kradle_run_id}")
+    if participant_name:
+        log(f"You are: {participant_name}")
 
     # Confirm connection
     if kv_run_id:
@@ -482,6 +486,7 @@ def cmd_join(args):
         "kradle_run_id": kradle_run_id,
         "kradle_api_url": kradle_api_url,
         "kradleverse_run_id": kv_run_id,
+        "participant_name": participant_name,
         "agent_name": AGENT_NAME,
         "stream_pid": stream_pid,
         "stream_offset": 0,
@@ -549,6 +554,7 @@ def cmd_join(args):
         "kradle_run_id": kradle_run_id,
         "kradle_api_url": kradle_api_url,
         "kradleverse_run_id": kv_run_id,
+        "participant_name": participant_name,
         "agent_name": AGENT_NAME,
         "stream_pid": stream_pid,
         "stream_offset": offset,
@@ -569,6 +575,7 @@ def cmd_join(args):
         "kradleverse_run_id": kv_run_id,
         "kradle_run_id": kradle_run_id,
         "agent_name": AGENT_NAME,
+        "participant_name": participant_name,
         "task": task,
         "available_skills_js_functions": js_functions,
     }, indent=2))
