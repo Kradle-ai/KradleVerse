@@ -19,6 +19,8 @@ Session files are stored in ~/.kradle/kradleverse/sessions/<session_id>/
 import argparse
 import json
 import os
+import signal
+import subprocess
 import sys
 import time
 import uuid
@@ -48,6 +50,11 @@ def get_session_dir(session_id: str) -> Path:
 def get_state_file(session_id: str) -> Path:
     """Get the state file path for a session."""
     return get_session_dir(session_id) / "state.json"
+
+
+def get_stream_file(session_id: str) -> Path:
+    """Get the SSE stream file path for a session."""
+    return get_session_dir(session_id) / "stream.sse"
 
 
 def generate_session_id() -> str:
@@ -152,6 +159,122 @@ def api_call_safe(method: str, path: str, **kwargs) -> dict | None:
         return resp.json()
     except Exception:
         return None
+
+
+def kradle_api_call(method: str, kradle_api_url: str, path: str, *,
+                    json_body: dict = None, timeout: int = 30) -> dict:
+    """Make a request directly to the Kradle API."""
+    import requests
+
+    url = f"{kradle_api_url}{path}"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}",
+    }
+
+    try:
+        resp = requests.request(
+            method, url, json=json_body,
+            headers=headers, timeout=timeout,
+        )
+    except requests.RequestException as e:
+        log(f"ERROR: Kradle API request failed: {e}")
+        sys.exit(1)
+
+    if resp.status_code >= 400:
+        log(f"ERROR: {method} {path} failed: HTTP {resp.status_code}")
+        log(f"  {resp.text[:500]}")
+        sys.exit(1)
+
+    return resp.json()
+
+
+# ---------------------------------------------------------------------------
+# SSE streaming
+# ---------------------------------------------------------------------------
+
+def start_observation_stream(session_id: str, kradle_api_url: str, kradle_run_id: str) -> int:
+    """Start a background curl process to stream observations via SSE.
+
+    Returns the PID of the curl process.
+    """
+    stream_file = get_stream_file(session_id)
+    url = f"{kradle_api_url}/runs/{kradle_run_id}/observations/stream"
+
+    f = open(stream_file, "w")
+    proc = subprocess.Popen(
+        ["curl", "-N", "-s", "-H", f"Authorization: Bearer {API_KEY}", url],
+        stdout=f,
+        stderr=subprocess.DEVNULL,
+    )
+    f.close()  # child process inherited the fd
+
+    return proc.pid
+
+
+def stop_observation_stream(pid: int):
+    """Stop a running curl stream process."""
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
+def is_stream_alive(pid: int) -> bool:
+    """Check if a stream process is still running."""
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, PermissionError):
+        return False
+
+
+def parse_sse_observations(raw: str) -> list[dict]:
+    """Parse raw SSE text and extract observation data payloads.
+
+    SSE format from Kradle:
+        : connected
+        id: <timestamp>
+        data: {"creationTime":"...","data":{...}}
+        : keepalive
+        event: done
+        data: {}
+    """
+    observations = []
+    for line in raw.split("\n"):
+        if line.startswith("data: "):
+            payload = line[6:]
+            if not payload or payload == "{}":
+                continue
+            try:
+                event = json.loads(payload)
+                if "data" in event:
+                    observations.append(event)
+            except json.JSONDecodeError:
+                continue
+    return observations
+
+
+def read_stream_observations(session_id: str, offset: int = 0) -> tuple[list[dict], int]:
+    """Read new observations from the stream file starting at byte offset.
+
+    Returns (observations, new_offset).
+    """
+    stream_file = get_stream_file(session_id)
+    if not stream_file.exists():
+        return [], offset
+
+    file_size = stream_file.stat().st_size
+    if file_size <= offset:
+        return [], offset
+
+    with open(stream_file, "r") as f:
+        f.seek(offset)
+        new_data = f.read()
+        new_offset = f.tell()
+
+    observations = parse_sse_observations(new_data)
+    return observations, new_offset
 
 
 # ---------------------------------------------------------------------------
@@ -260,58 +383,25 @@ def confirm_connection(kradleverse_run_id: str) -> dict:
     })
 
 
-def poll_observations(run_id: str, page_token: str | None = None,
-                      page_size: int = 50) -> tuple[list[dict], str | None]:
-    """Poll the observations API. Returns (observations, next_page_token)."""
-    params = {"agentId": AGENT_NAME, "pageSize": str(page_size)}
-    if page_token:
-        params["pageToken"] = page_token
-
-    data = api_call_safe("GET", f"/runs/{run_id}/observations", params=params)
-    if not data:
-        return [], page_token
-
-    observations = data.get("observations", [])
-    next_token = data.get("nextPageToken", page_token)
-    return observations, next_token
-
-
-def wait_for_init_call(run_id: str, timeout: int) -> tuple[dict | None, str | None]:
-    """Poll observations until init_call arrives. Returns (init_data, page_token)."""
-    start = time.time()
-    poll_interval = 3
-    page_token = None
-
-    while time.time() - start < timeout:
-        observations, page_token = poll_observations(run_id, page_token)
-
-        for obs in observations:
-            if obs.get("level") == "init_call":
-                return obs.get("data", {}), page_token
-
-        time.sleep(poll_interval)
-
-    return None, page_token
-
-
 def send_action(session_id: str, code: str = "", message: str = "", thoughts: str = "") -> dict:
-    """Send an action to the run via the API."""
+    """Send an action directly to the Kradle API."""
     state = load_state(session_id)
-    run_id = state["run_id"]
+    kradle_run_id = state["kradle_run_id"]
+    kradle_api_url = state["kradle_api_url"]
 
-    run_id_short = run_id[:8]
-    print(f"Sending action to run {run_id_short} (session: {session_id})...")
+    print(f"Sending action to run {kradle_run_id} (session: {session_id})...")
     if code:
         display_code = code[:60] + ("..." if len(code) > 60 else "")
         print(f"   Code: {display_code}")
     if message:
         print(f"   Message: {message}")
 
-    data = api_call("POST", f"/runs/{run_id}/actions", json_body={
-        "agentId": AGENT_NAME,
-        "code": code,
-        "message": message,
-        "thoughts": thoughts,
+    data = kradle_api_call("POST", kradle_api_url, f"/runs/{kradle_run_id}/actions", json_body={
+        "action": {
+            "code": code,
+            "message": message,
+            "thoughts": thoughts,
+        },
     })
 
     print("Action sent!")
@@ -345,24 +435,28 @@ def cmd_join(args):
     status_data = wait_for_assignment(timeout=args.timeout)
 
     run_info = status_data.get("run", {})
-    run_id = run_info.get("runId")  # Kradle run ID
-    kv_run_id = run_info.get("id")  # KradleVerse run ID
+    kradle_run_id = run_info.get("runId")
+    kv_run_id = run_info.get("id")
+    kradle_api_url = run_info.get("kradleApiUrl", "https://api.kradle.ai/v0")
 
-    if not run_id:
-        log("ERROR: No run ID in assignment. The run may still be starting...")
+    if not kv_run_id:
+        log("ERROR: No KradleVerse run ID in assignment. The run may still be starting...")
         # Retry a few times
         for _ in range(10):
             time.sleep(3)
             data = api_call_safe("GET", "/queue/status", params={"agentId": AGENT_NAME})
-            if data and data.get("run", {}).get("runId"):
-                run_id = data["run"]["runId"]
-                kv_run_id = data["run"].get("id", kv_run_id)
+            if data and data.get("run", {}).get("id"):
+                kv_run_id = data["run"]["id"]
+                kradle_run_id = data["run"].get("runId", kradle_run_id)
+                kradle_api_url = data["run"].get("kradleApiUrl", kradle_api_url)
                 break
-        if not run_id:
+        if not kv_run_id:
             log("ERROR: Could not get run ID after assignment")
             sys.exit(1)
 
-    log(f"Run ID: {run_id[:8]}...")
+    log(f"KradleVerse run: {kv_run_id}")
+    if kradle_run_id:
+        log(f"Kradle run: {kradle_run_id}")
 
     # Confirm connection
     if kv_run_id:
@@ -372,22 +466,51 @@ def cmd_join(args):
         except SystemExit:
             log("WARNING: Could not confirm connection (continuing anyway)")
 
+    # Create session dir
+    session_dir = get_session_dir(session_id)
+    session_dir.mkdir(parents=True, exist_ok=True)
+
+    # Start SSE observation stream
+    stream_pid = None
+    if kradle_run_id:
+        log("Starting observation stream...")
+        stream_pid = start_observation_stream(session_id, kradle_api_url, kradle_run_id)
+        log(f"Stream started (PID: {stream_pid})")
+
     # Save initial state
     save_state(session_id, {
-        "run_id": run_id,
+        "kradle_run_id": kradle_run_id,
+        "kradle_api_url": kradle_api_url,
         "kradleverse_run_id": kv_run_id,
         "agent_name": AGENT_NAME,
-        "page_token": None,
+        "stream_pid": stream_pid,
+        "stream_offset": 0,
         "task": None,
         "js_functions": None,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "status": "waiting_for_init",
     })
 
-    # Wait for init_call (arena needs time to start)
+    # Wait for init_call by reading the SSE stream file
     remaining_timeout = max(10, args.timeout - 60)
     log(f"Waiting for arena to start (timeout: {remaining_timeout}s)...")
-    init_data, page_token = wait_for_init_call(run_id, timeout=remaining_timeout)
+
+    init_data = None
+    start = time.time()
+    offset = 0
+
+    while time.time() - start < remaining_timeout:
+        observations, offset = read_stream_observations(session_id, offset)
+
+        for obs in observations:
+            obs_data = obs.get("data", {})
+            if obs_data.get("level") == "init_call":
+                init_data = obs_data.get("data", {})
+                break
+
+        if init_data:
+            break
+        time.sleep(2)
 
     if not init_data:
         log("ERROR: Timeout waiting for arena to start")
@@ -396,6 +519,7 @@ def cmd_join(args):
         # Save state anyway so observe can be used manually
         save_state(session_id, {
             **load_state(session_id),
+            "stream_offset": offset,
             "status": "playing",
         })
         sys.exit(2)
@@ -403,48 +527,47 @@ def cmd_join(args):
     task = init_data.get("task", "")
     js_functions = init_data.get("js_functions", "")
 
+    # Wait for initial_state observation
+    log("Waiting for initial game state...")
+    initial_state = None
+    state_start = time.time()
+    while time.time() - state_start < 30:
+        observations, offset = read_stream_observations(session_id, offset)
+        for obs in observations:
+            obs_data = obs.get("data", {})
+            if obs_data.get("level") == "observation":
+                inner = obs_data.get("data", {})
+                if inner.get("event") == "initial_state":
+                    initial_state = inner
+                    break
+        if initial_state:
+            break
+        time.sleep(2)
+
     # Update state with game info
     save_state(session_id, {
-        "run_id": run_id,
+        "kradle_run_id": kradle_run_id,
+        "kradle_api_url": kradle_api_url,
         "kradleverse_run_id": kv_run_id,
         "agent_name": AGENT_NAME,
-        "page_token": page_token,
+        "stream_pid": stream_pid,
+        "stream_offset": offset,
         "task": task,
         "js_functions": js_functions,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "status": "playing",
     })
 
-    # Now poll for initial_state observation
-    log("Waiting for initial game state...")
-    initial_state = None
-    start = time.time()
-    while time.time() - start < 30:
-        observations, page_token = poll_observations(run_id, page_token)
-        for obs in observations:
-            if obs.get("level") == "observation":
-                data = obs.get("data", {})
-                if data.get("event") == "initial_state":
-                    initial_state = data
-                    break
-        if initial_state:
-            break
-        time.sleep(2)
-
-    # Update page_token
-    state = load_state(session_id)
-    state["page_token"] = page_token
-    save_state(session_id, state)
-
     # Output game info
     print("\n" + "=" * 50)
     print("GAME STARTED!")
     print(f"SESSION: {session_id}")
-    print(f"RUN: {run_id[:8]}...")
+    print(f"RUN: {kv_run_id}")
     print("=" * 50)
     print("Game info:")
     print(json.dumps({
-        "run_id": run_id,
+        "kradleverse_run_id": kv_run_id,
+        "kradle_run_id": kradle_run_id,
         "agent_name": AGENT_NAME,
         "task": task,
         "available_skills_js_functions": js_functions,
@@ -466,33 +589,33 @@ def cmd_join(args):
     print("=" * 50)
     print(f"\nUse: kradleverse.py observe {session_id}")
     print(f"Use: kradleverse.py act {session_id} -c '...'")
-    print(f"Replay: https://www.kradleverse.com/run/{run_id}")
+    if kradle_run_id:
+        print(f"Replay: https://www.kradleverse.com/run/{kradle_run_id}")
 
 
 def cmd_observe(args):
-    """Get observations from the game via API polling."""
+    """Get observations from the SSE stream file."""
     state = load_state(args.session)
-    run_id = state["run_id"]
-    page_token = state.get("page_token") if not args.peek else state.get("page_token")
+    offset = state.get("stream_offset", 0)
 
-    observations, next_token = poll_observations(run_id, page_token)
+    observations, new_offset = read_stream_observations(args.session, offset)
 
     if not observations:
         print(json.dumps({"current_state": {}, "events": [], "total_events": 0}))
         return
 
-    # Extract observation data from API response
+    # Extract observation data from SSE events
     obs_data = []
     for obs in observations:
-        data = obs.get("data", {})
-        if obs.get("level") == "observation" and data:
-            obs_data.append(filter_observation(data))
+        inner = obs.get("data", {})
+        if inner.get("level") == "observation" and "data" in inner:
+            obs_data.append(filter_observation(inner["data"]))
 
     if not obs_data:
         print(json.dumps({"current_state": {}, "events": [], "total_events": 0}))
-        # Still update token even if no observation-level entries
-        if not args.peek and next_token:
-            state["page_token"] = next_token
+        # Still advance offset even if no observation-level entries
+        if not args.peek:
+            state["stream_offset"] = new_offset
             save_state(args.session, state)
         return
 
@@ -507,9 +630,9 @@ def cmd_observe(args):
     }
     print(json.dumps(output, indent=2))
 
-    # Update page token (advance cursor) unless peeking
-    if not args.peek and next_token:
-        state["page_token"] = next_token
+    # Update stream offset (advance cursor) unless peeking
+    if not args.peek:
+        state["stream_offset"] = new_offset
         save_state(args.session, state)
 
 
@@ -541,29 +664,48 @@ def cmd_status(args):
         if sessions:
             log(f"Sessions ({len(sessions)}):")
             for sid, state in sessions:
-                run_id = state.get("run_id", "unknown")[:8]
+                kradle_run_id = (state.get("kradle_run_id") or "unknown")[:8]
                 status = state.get("status", "unknown")
-                print(f"  {sid} (run: {run_id}, status: {status})")
+                stream_pid = state.get("stream_pid")
+                stream_info = ""
+                if stream_pid:
+                    stream_info = " stream:alive" if is_stream_alive(stream_pid) else " stream:dead"
+                print(f"  {sid} (run: {kradle_run_id}, status: {status}{stream_info})")
         else:
             log("No sessions found")
         return
 
     state = load_state(session_id)
     log(f"Session: {session_id}")
-    log(f"  Run ID: {state.get('run_id', 'unknown')}")
+    log(f"  Kradle Run ID: {state.get('kradle_run_id', 'unknown')}")
+    log(f"  KradleVerse Run ID: {state.get('kradleverse_run_id', 'unknown')}")
     log(f"  Agent: {state.get('agent_name', 'unknown')}")
     log(f"  Status: {state.get('status', 'unknown')}")
     log(f"  Started: {state.get('started_at', 'unknown')}")
+    stream_pid = state.get("stream_pid")
+    if stream_pid:
+        alive = is_stream_alive(stream_pid)
+        log(f"  Stream PID: {stream_pid} ({'running' if alive else 'stopped'})")
     if state.get("task"):
         log(f"  Task: {state['task'][:100]}...")
 
 
 def cmd_cleanup(args):
-    """Remove all session data."""
+    """Remove all session data and stop any running streams."""
     if SESSIONS_DIR.exists():
+        # Kill any running stream processes first
+        for session_dir in SESSIONS_DIR.iterdir():
+            if session_dir.is_dir() and (session_dir / "state.json").exists():
+                try:
+                    state = json.loads((session_dir / "state.json").read_text())
+                    pid = state.get("stream_pid")
+                    if pid:
+                        stop_observation_stream(pid)
+                except (json.JSONDecodeError, OSError):
+                    pass
         import shutil
         shutil.rmtree(SESSIONS_DIR)
-        log("All sessions removed")
+        log("All sessions removed (streams stopped)")
     else:
         log("No sessions to clean up")
 
