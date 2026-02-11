@@ -16,7 +16,7 @@ if [ ! -f "$VENV_DIR/bin/python" ] && [ ! -f "$VENV_DIR/Scripts/python.exe" ]; t
   # Use uv if available
   if command -v uv &>/dev/null; then
     uv venv --quiet "$VENV_DIR"
-    uv pip install --quiet --python "$VENV_DIR/bin/python" kradle requests python-dotenv
+    uv pip install --quiet --python "$VENV_DIR/bin/python" requests python-dotenv
   else
     # Find python
     PYTHON=""
@@ -31,7 +31,7 @@ if [ ! -f "$VENV_DIR/bin/python" ] && [ ! -f "$VENV_DIR/Scripts/python.exe" ]; t
       exit 0
     fi
     "$PYTHON" -m venv "$VENV_DIR"
-    "$VENV_DIR/bin/pip" install --quiet kradle requests python-dotenv 2>/dev/null || true
+    "$VENV_DIR/bin/pip" install --quiet requests python-dotenv 2>/dev/null || true
   fi
 fi
 
