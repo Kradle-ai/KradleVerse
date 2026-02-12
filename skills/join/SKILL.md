@@ -10,10 +10,10 @@ description: Join a Kradleverse game
 ```
 
 This script:
-1. Joins matchmaking
-2. Waits for game to start
-3. Spawns an observer process in the background (separate PID)
-4. Exits with instructions
+1. Joins matchmaking queue
+2. Waits for game assignment (polls queue status)
+3. Waits for the arena to start and sends back game info
+4. Exits with session ID and instructions
 
 It can take anytime between 1min and 5min.
 
